@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Authentication - Crowdsource Road Condition Reporter</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link href="styles.css" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyBo2UZl7CNmqi_qE9vBvhj0MvI1gs-DpVk",
+      authDomain: "roadconditionreporter-2a915.firebaseapp.com",
+      projectId: "roadconditionreporter-2a915",
+      storageBucket: "roadconditionreporter-2a915.firebasestorage.app",
+      messagingSenderId: "686393091393",
+      appId: "1:686393091393:web:f56ed0c46aac1b37e46dc0",
+      measurementId: "G-JJYRHPQXDW"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    // Make auth available globally
+    window.auth = auth;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.signOut = signOut;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.updateProfile = updateProfile;
+
+    // Check authentication state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in
+        console.log('User is signed in:', user.email);
+        // Redirect to main page if user is already logged in
+        if (window.location.pathname.includes('auth.html')) {
+          // Show a brief message before redirecting
+          const authContent = document.querySelector('.auth-content');
+          authContent.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <h2 class="auth-title">✅ Already Logged In</h2>
+              <p class="auth-subtitle">Welcome back, ${user.displayName || user.email}!</p>
+              <p class="auth-subtitle">Redirecting to main page...</p>
+            </div>
+          `;
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        }
+      } else {
+        // User is signed out
+        console.log('User is signed out');
+      }
+    });
+  </script>
+  
+  <!-- Auth Page Specific Styles -->
+  <style>
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    
+    .auth-card {
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(25px);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 3rem 2rem;
+      max-width: 450px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+    }
+    
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+      animation: shimmer 4s ease-in-out infinite;
+      z-index: 0;
+    }
+    
+    .auth-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .auth-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #ffffff;
+      font-family: 'Montserrat', sans-serif;
+      margin-bottom: 1rem;
+      text-align: center;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    
+    .auth-subtitle {
+      font-size: 1rem;
+      color: #e5e5e5;
+      margin-bottom: 2rem;
+      text-align: center;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 400;
+    }
+    
+    .auth-form {
+      margin-bottom: 2rem;
+    }
+    
+    .auth-form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .auth-label {
+      color: #ffffff;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    
+    .auth-input {
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #ffffff;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .auth-input:focus {
+      background: rgba(10, 10, 10, 0.9);
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      color: #ffffff;
+      outline: none;
+    }
+    
+    .auth-input::placeholder {
+      color: #a0a0a0;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    .auth-btn {
+      background: linear-gradient(135deg, #ffffff, #f0f0f0);
+      color: #000000;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-family: 'Montserrat', sans-serif;
+      border: none;
+      width: 100%;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .auth-btn:hover {
+      background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4);
+      color: #000000;
+    }
+    
+    .auth-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    .auth-switch {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .auth-switch-text {
+      color: #e5e5e5;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 400;
+    }
+    
+    .auth-switch-link {
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 0.5rem;
+      transition: color 0.3s ease;
+    }
+    
+    .auth-switch-link:hover {
+      color: #60a5fa;
+    }
+    
+    .auth-divider {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      margin: 2rem 0;
+    }
+    
+    .auth-social {
+      text-align: center;
+    }
+    
+    .auth-social-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #ffffff;
+      padding: 0.75rem 1rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      margin: 0.5rem;
+    }
+    
+    .auth-social-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+      color: #ffffff;
+      text-decoration: none;
+    }
+    
+    .form-hidden {
+      display: none;
+    }
+    
+    .auth-success-animation {
+      animation: successPulse 2s ease-in-out;
+    }
+
+    @keyframes successPulse {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .confirmation-card {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+
+    .confirmation-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      animation: bounce 1s ease-in-out;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+
+    .back-home {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      color: #ffffff;
+      text-decoration: none;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .back-home:hover {
+      color: #60a5fa;
+      transform: translateX(-2px);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Enhanced form styling */
+    .auth-input:focus {
+      background: rgba(10, 10, 10, 0.9);
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      color: #ffffff;
+      outline: none;
+    }
+
+    .auth-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Loading spinner styling */
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    /* Alert styling */
+    .alert {
+      border-radius: 8px;
+      border: none;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Back to Home -->
+  <a href="index.html" class="back-home">
+    <span>←</span>
+    <span>Back to Home</span>
+  </a>
+
+  <!-- Auth Container -->
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-content">
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form">
+          <h2 class="auth-title">🔐 Welcome Back</h2>
+          <p class="auth-subtitle">Sign in to your account to continue</p>
+          
+          <form>
+            <div class="auth-form-group">
+              <label class="auth-label">Email Address</label>
+              <input type="email" class="auth-input" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">Password</label>
+              <input type="password" class="auth-input" placeholder="Enter your password" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">
+                <input type="checkbox" style="margin-right: 0.5rem;">
+                Remember me
+              </label>
+            </div>
+            
+            <button type="submit" class="auth-btn">Sign In</button>
+          </form>
+          
+          <div class="auth-divider"></div>
+          
+          <div class="auth-social">
+            <p class="auth-switch-text">Or sign in with:</p>
+            <a href="#" class="auth-social-btn">
+              <span>🔍</span>
+              <span>Google</span>
+            </a>
+            <a href="#" class="auth-social-btn">
+              <span>📘</span>
+              <span>Facebook</span>
+            </a>
+          </div>
+          
+          <div class="auth-switch">
+            <span class="auth-switch-text">Don't have an account?</span>
+            <a href="#" class="auth-switch-link" onclick="showSignup()">Sign Up</a>
+          </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" class="auth-form form-hidden">
+          <h2 class="auth-title">📝 Create Account</h2>
+          <p class="auth-subtitle">Join us to report road conditions</p>
+          
+          <form>
+            <div class="auth-form-group">
+              <label class="auth-label">Full Name</label>
+              <input type="text" class="auth-input" placeholder="Enter your full name" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">Email Address</label>
+              <input type="email" class="auth-input" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">Password</label>
+              <input type="password" class="auth-input" placeholder="Create a password" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">Confirm Password</label>
+              <input type="password" class="auth-input" placeholder="Confirm your password" required>
+            </div>
+            
+            <div class="auth-form-group">
+              <label class="auth-label">
+                <input type="checkbox" style="margin-right: 0.5rem;" required>
+                I agree to the <a href="#" style="color: #60a5fa;">Terms of Service</a> and <a href="#" style="color: #60a5fa;">Privacy Policy</a>
+              </label>
+            </div>
+            
+            <button type="submit" class="auth-btn">Create Account</button>
+          </form>
+          
+          <div class="auth-divider"></div>
+          
+          <div class="auth-social">
+            <p class="auth-switch-text">Or sign up with:</p>
+            <a href="#" class="auth-social-btn">
+              <span>🔍</span>
+              <span>Google</span>
+            </a>
+            <a href="#" class="auth-social-btn">
+              <span>📘</span>
+              <span>Facebook</span>
+            </a>
+          </div>
+          
+          <div class="auth-switch">
+            <span class="auth-switch-text">Already have an account?</span>
+            <a href="#" class="auth-switch-link" onclick="showLogin()">Sign In</a>
+          </div>
+        </div>
+
+        <!-- Confirmation Page -->
+        <div id="confirmationPage" class="auth-form form-hidden">
+          <div style="text-align: center; padding: 1rem;" class="auth-success-animation">
+            <div class="confirmation-icon">🎉</div>
+            <h2 class="auth-title">✅ Registration Successful!</h2>
+            <p class="auth-subtitle">Your account has been created successfully.</p>
+            <p class="auth-subtitle">Welcome to the Crowdsource Road Condition Reporter!</p>
+            
+            <div class="confirmation-card">
+              <h4 style="color: #10b981; margin-bottom: 0.5rem;">Account Details:</h4>
+              <p style="color: #e5e5e5; margin: 0;" id="userEmail"></p>
+            </div>
+            
+            <button onclick="showLogin()" class="auth-btn" style="background: linear-gradient(135deg, #10b981, #059669); margin-bottom: 1rem;">
+              🔐 Login Now
+            </button>
+            
+            <div style="margin-top: 2rem;">
+              <p style="color: #a0a0a0; font-size: 0.9rem;">
+                You can now report road conditions and contribute to safer roads across India.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showSignup() {
+      document.getElementById('loginForm').classList.add('form-hidden');
+      document.getElementById('signupForm').classList.remove('form-hidden');
+      document.getElementById('confirmationPage').classList.add('form-hidden');
+    }
+    
+    function showLogin() {
+      document.getElementById('signupForm').classList.add('form-hidden');
+      document.getElementById('loginForm').classList.remove('form-hidden');
+      document.getElementById('confirmationPage').classList.add('form-hidden');
+    }
+
+    function showConfirmation(email) {
+      document.getElementById('loginForm').classList.add('form-hidden');
+      document.getElementById('signupForm').classList.add('form-hidden');
+      document.getElementById('confirmationPage').classList.remove('form-hidden');
+      document.getElementById('userEmail').textContent = email;
+    }
+
+    // Show loading state
+    function showLoading(button) {
+      const originalText = button.textContent;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+      button.disabled = true;
+      return originalText;
+    }
+
+    // Hide loading state
+    function hideLoading(button, originalText) {
+      button.innerHTML = originalText;
+      button.disabled = false;
+    }
+
+    // Show success message
+    function showSuccess(message) {
+      const successDiv = document.createElement('div');
+      successDiv.className = 'alert alert-success mt-3';
+      successDiv.textContent = message;
+      document.querySelector('.auth-content').appendChild(successDiv);
+      setTimeout(() => successDiv.remove(), 3000);
+    }
+
+    // Show error message
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'alert alert-danger mt-3';
+      errorDiv.textContent = message;
+      document.querySelector('.auth-content').appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+
+    // Handle signup form submission
+    document.querySelector('#signupForm form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const button = this.querySelector('button[type="submit"]');
+      const originalText = showLoading(button);
+      
+      const email = this.querySelector('input[type="email"]').value;
+      const password = this.querySelector('input[type="password"]').value;
+      const confirmPassword = this.querySelectorAll('input[type="password"]')[1].value;
+      const fullName = this.querySelector('input[type="text"]').value;
+      
+      // Validation
+      if (password !== confirmPassword) {
+        hideLoading(button, originalText);
+        showError('Passwords do not match!');
+        return;
+      }
+      
+      if (password.length < 6) {
+        hideLoading(button, originalText);
+        showError('Password must be at least 6 characters long!');
+        return;
+      }
+      
+      try {
+        const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+        
+        // Update user profile with display name
+        await window.updateProfile(user, {
+          displayName: fullName
+        });
+        
+        hideLoading(button, originalText);
+        
+        // Show confirmation page instead of redirecting
+        showConfirmation(email);
+        
+      } catch (error) {
+        hideLoading(button, originalText);
+        let errorMessage = 'An error occurred during signup.';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'An account with this email already exists.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please choose a stronger password.';
+            break;
+          default:
+            errorMessage = error.message;
+        }
+        
+        showError(errorMessage);
+      }
+    });
+
+    // Handle login form submission
+    document.querySelector('#loginForm form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const button = this.querySelector('button[type="submit"]');
+      const originalText = showLoading(button);
+      
+      const email = this.querySelector('input[type="email"]').value;
+      const password = this.querySelector('input[type="password"]').value;
+      
+      try {
+        const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+        
+        hideLoading(button, originalText);
+        showSuccess('Login successful! Redirecting...');
+        
+        // Redirect to main page after successful login
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 2000);
+        
+      } catch (error) {
+        hideLoading(button, originalText);
+        let errorMessage = 'An error occurred during login.';
+        
+        switch (error.code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email address.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password. Please try again.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later.';
+            break;
+          default:
+            errorMessage = error.message;
+        }
+        
+        showError(errorMessage);
+      }
+    });
+
+    // Social login handlers (placeholder for future implementation)
+    document.querySelectorAll('.auth-social-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        showError('Social login will be implemented soon!');
+      });
+    });
+  </script>
+</body>
+</html> 

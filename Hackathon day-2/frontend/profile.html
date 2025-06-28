@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Profile - Crowdsource Road Condition Reporter</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link href="styles.css" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBo2UZl7CNmqi_qE9vBvhj0MvI1gs-DpVk",
+      authDomain: "roadconditionreporter-2a915.firebaseapp.com",
+      projectId: "roadconditionreporter-2a915",
+      storageBucket: "roadconditionreporter-2a915.firebasestorage.app",
+      messagingSenderId: "686393091393",
+      appId: "1:686393091393:web:f56ed0c46aac1b37e46dc0",
+      measurementId: "G-JJYRHPQXDW"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    // Make auth available globally
+    window.auth = auth;
+    window.signOut = signOut;
+
+    // Check authentication state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in
+        console.log('User is signed in:', user.email);
+        loadUserProfile(user);
+      } else {
+        // User is signed out, redirect to login
+        window.location.href = 'auth.html';
+      }
+    });
+
+    // Load user profile data
+    window.loadUserProfile = function(user) {
+      // Mock user data - in real app, this would come from Firebase Firestore
+      const userData = {
+        displayName: user.displayName || 'Road Warrior',
+        email: user.email,
+        joinDate: '2024-01-15',
+        totalReports: 47,
+        reportsThisMonth: 12,
+        accuracy: 94.5,
+        rank: 'Road Inspector',
+        level: 8,
+        experience: 2840,
+        nextLevelExp: 3000,
+        achievements: [
+          { id: 1, name: 'First Report', description: 'Submitted your first pothole report', icon: '🎯', earned: true, date: '2024-01-15' },
+          { id: 2, name: 'Dedicated Reporter', description: 'Submitted 10 reports', icon: '📝', earned: true, date: '2024-01-20' },
+          { id: 3, name: 'Accuracy Master', description: 'Achieved 90%+ accuracy', icon: '🎯', earned: true, date: '2024-01-25' },
+          { id: 4, name: 'Road Warrior', description: 'Submitted 50 reports', icon: '🛡️', earned: false, date: null },
+          { id: 5, name: 'Community Hero', description: 'Helped improve 100 roads', icon: '🏆', earned: false, date: null },
+          { id: 6, name: 'Perfect Week', description: 'Submitted reports for 7 consecutive days', icon: '📅', earned: false, date: null }
+        ],
+        recentReports: [
+          { id: 1, date: '2024-01-28', location: 'Mumbai, Maharashtra', status: 'Verified', severity: 'High' },
+          { id: 2, date: '2024-01-27', location: 'Delhi, NCR', status: 'Under Review', severity: 'Medium' },
+          { id: 3, date: '2024-01-26', location: 'Bangalore, Karnataka', status: 'Fixed', severity: 'Low' },
+          { id: 4, date: '2024-01-25', location: 'Chennai, Tamil Nadu', status: 'Verified', severity: 'High' },
+          { id: 5, date: '2024-01-24', location: 'Hyderabad, Telangana', status: 'Under Review', severity: 'Medium' }
+        ]
+      };
+
+      // Update profile display
+      document.getElementById('userName').textContent = userData.displayName;
+      document.getElementById('userEmail').textContent = userData.email;
+      document.getElementById('userRank').textContent = userData.rank;
+      document.getElementById('userLevel').textContent = `Level ${userData.level}`;
+      document.getElementById('totalReports').textContent = userData.totalReports;
+      document.getElementById('reportsThisMonth').textContent = userData.reportsThisMonth;
+      document.getElementById('accuracy').textContent = `${userData.accuracy}%`;
+      document.getElementById('joinDate').textContent = new Date(userData.joinDate).toLocaleDateString();
+
+      // Update progress bar
+      const progressPercent = (userData.experience / userData.nextLevelExp) * 100;
+      document.getElementById('levelProgress').style.width = `${progressPercent}%`;
+      document.getElementById('expText').textContent = `${userData.experience}/${userData.nextLevelExp} XP`;
+
+      // Load achievements
+      loadAchievements(userData.achievements);
+      
+      // Load recent reports
+      loadRecentReports(userData.recentReports);
+    };
+
+    // Load achievements
+    window.loadAchievements = function(achievements) {
+      const container = document.getElementById('achievementsContainer');
+      container.innerHTML = '';
+
+      achievements.forEach(achievement => {
+        const achievementCard = document.createElement('div');
+        achievementCard.className = `achievement-card ${achievement.earned ? 'earned' : 'locked'}`;
+        achievementCard.innerHTML = `
+          <div class="achievement-icon">${achievement.icon}</div>
+          <div class="achievement-info">
+            <h5>${achievement.name}</h5>
+            <p>${achievement.description}</p>
+            ${achievement.earned ? `<small>Earned: ${new Date(achievement.date).toLocaleDateString()}</small>` : '<small>Not yet earned</small>'}
+          </div>
+        `;
+        container.appendChild(achievementCard);
+      });
+    };
+
+    // Load recent reports
+    window.loadRecentReports = function(reports) {
+      const container = document.getElementById('recentReportsContainer');
+      container.innerHTML = '';
+
+      reports.forEach(report => {
+        const reportCard = document.createElement('div');
+        reportCard.className = 'report-card';
+        const statusClass = report.status === 'Fixed' ? 'status-fixed' : 
+                           report.status === 'Verified' ? 'status-verified' : 'status-review';
+        reportCard.innerHTML = `
+          <div class="report-info">
+            <h6>Report #${report.id}</h6>
+            <p>${report.location}</p>
+            <small>${report.date}</small>
+          </div>
+          <div class="report-status">
+            <span class="status-badge ${statusClass}">${report.status}</span>
+            <span class="severity-badge severity-${report.severity.toLowerCase()}">${report.severity}</span>
+          </div>
+        `;
+        container.appendChild(reportCard);
+      });
+    };
+
+    // Show user menu
+    window.showUserMenu = function() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const menu = document.createElement('div');
+      menu.className = 'user-menu';
+      menu.innerHTML = `
+        <div class="user-menu-content">
+          <div class="user-info">
+            <span class="user-name">${user.displayName || 'User'}</span>
+            <span class="user-email">${user.email}</span>
+          </div>
+          <div class="user-menu-actions">
+            <button onclick="window.location.href='profile.html'" class="user-menu-btn">👤 Profile</button>
+            <button onclick="window.location.href='change-password.html'" class="user-menu-btn">🔒 Change Password</button>
+            <button onclick="logout()" class="user-menu-btn logout-btn">🚪 Logout</button>
+          </div>
+        </div>
+      `;
+      
+      // Remove existing menu
+      const existingMenu = document.querySelector('.user-menu');
+      if (existingMenu) existingMenu.remove();
+      
+      document.body.appendChild(menu);
+      
+      // Close menu when clicking outside
+      setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+          if (!menu.contains(e.target) && !e.target.closest('.login-btn')) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          }
+        });
+      }, 100);
+    };
+
+    // Logout function
+    window.logout = async function() {
+      try {
+        await signOut(auth);
+        window.location.href = 'auth.html';
+      } catch (error) {
+        console.error('Error signing out:', error);
+        alert('Error signing out. Please try again.');
+      }
+    };
+  </script>
+
+  <!-- Profile Page Specific Styles -->
+  <style>
+    .profile-container {
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .profile-header {
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(25px);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+      animation: shimmer 4s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    .profile-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .user-avatar {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: white;
+      margin: 0 auto 1rem;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .user-name {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .user-rank {
+      font-size: 1.2rem;
+      color: #60a5fa;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .stat-label {
+      color: #a0a0a0;
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .level-progress-container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .level-progress-bar {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      height: 20px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .level-progress-fill {
+      background: linear-gradient(90deg, #60a5fa, #3b82f6);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .section-title {
+      color: #ffffff;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .achievement-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .achievement-card.earned {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .achievement-card.locked {
+      opacity: 0.6;
+      filter: grayscale(1);
+    }
+
+    .achievement-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .achievement-icon {
+      font-size: 2rem;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .achievement-info h5 {
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .achievement-info p {
+      color: #a0a0a0;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .achievement-info small {
+      color: #60a5fa;
+      font-weight: 500;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .reports-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .report-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .report-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
+    }
+
+    .report-info h6 {
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .report-info p {
+      color: #a0a0a0;
+      margin-bottom: 0.25rem;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .report-info small {
+      color: #60a5fa;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .report-status {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .status-fixed {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .status-verified {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .status-review {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .severity-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .severity-high {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .severity-medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .severity-low {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .back-home {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      color: #ffffff;
+      text-decoration: none;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .back-home:hover {
+      color: #60a5fa;
+      transform: translateX(-2px);
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .achievements-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .report-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      
+      .report-status {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Back to Home -->
+  <a href="index.html" class="back-home">
+    <span>←</span>
+    <span>Back to Home</span>
+  </a>
+
+  <!-- Profile Container -->
+  <div class="profile-container">
+    <div class="container">
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-content">
+          <div class="user-avatar">👤</div>
+          <h1 class="user-name" id="userName">Loading...</h1>
+          <div class="user-rank" id="userRank">Loading...</div>
+          <div class="user-level" id="userLevel">Loading...</div>
+          
+          <!-- Level Progress -->
+          <div class="level-progress-container">
+            <h5 class="section-title">🎯 Level Progress</h5>
+            <div class="level-progress-bar">
+              <div class="level-progress-fill" id="levelProgress" style="width: 0%"></div>
+            </div>
+            <p class="text-light text-center" id="expText">0/1000 XP</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalReports">0</div>
+          <div class="stat-label">Total Reports</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="reportsThisMonth">0</div>
+          <div class="stat-label">Reports This Month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="accuracy">0%</div>
+          <div class="stat-label">Accuracy Rate</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="joinDate">-</div>
+          <div class="stat-label">Member Since</div>
+        </div>
+      </div>
+
+      <!-- Achievements Section -->
+      <div class="card p-4 mb-4">
+        <h3 class="section-title">🏆 Achievements</h3>
+        <div class="achievements-grid" id="achievementsContainer">
+          <!-- Achievements will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Recent Reports Section -->
+      <div class="card p-4">
+        <h3 class="section-title">📋 Recent Reports</h3>
+        <div class="reports-list" id="recentReportsContainer">
+          <!-- Recent reports will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html> 

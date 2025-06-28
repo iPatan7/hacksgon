@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crowdsource Road Condition Reporter</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link href="styles.css" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBo2UZl7CNmqi_qE9vBvhj0MvI1gs-DpVk",
+      authDomain: "roadconditionreporter-2a915.firebaseapp.com",
+      projectId: "roadconditionreporter-2a915",
+      storageBucket: "roadconditionreporter-2a915.firebasestorage.app",
+      messagingSenderId: "686393091393",
+      appId: "1:686393091393:web:f56ed0c46aac1b37e46dc0",
+      measurementId: "G-JJYRHPQXDW"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    // Make auth available globally
+    window.auth = auth;
+    window.signOut = signOut;
+
+    // Cache DOM elements for better performance
+    let loginBtn = null;
+    let userMenu = null;
+    let isMenuOpen = false;
+
+    // Optimized authentication state handler
+    onAuthStateChanged(auth, (user) => {
+      if (!loginBtn) {
+        loginBtn = document.querySelector('.login-btn');
+      }
+      
+      if (user) {
+        // User is signed in
+        console.log('User is signed in:', user.email);
+        updateLoginButton(user);
+      } else {
+        // User is signed out
+        console.log('User is signed out');
+        updateLoginButton(null);
+      }
+    });
+
+    // Optimized login button update
+    function updateLoginButton(user) {
+      if (!loginBtn) return;
+      
+      if (user) {
+        loginBtn.textContent = `👤 ${user.displayName || user.email.split('@')[0]}`;
+        loginBtn.href = '#';
+        loginBtn.onclick = handleUserMenuClick;
+      } else {
+        loginBtn.textContent = '🔐 Login';
+        loginBtn.href = 'auth.html';
+        loginBtn.onclick = null;
+      }
+    }
+
+    // Optimized user menu click handler
+    function handleUserMenuClick(e) {
+      e.preventDefault();
+      toggleUserMenu();
+    }
+
+    // Optimized user menu toggle
+    function toggleUserMenu() {
+      if (!userMenu) {
+        createUserMenu();
+      }
+      
+      if (isMenuOpen) {
+        hideUserMenu();
+      } else {
+        showUserMenu();
+      }
+    }
+
+    // Create user menu once
+    function createUserMenu() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      userMenu = document.createElement('div');
+      userMenu.className = 'user-menu';
+      userMenu.innerHTML = `
+        <div class="user-menu-content">
+          <div class="user-info">
+            <span class="user-name">${user.displayName || user.email.split('@')[0]}</span>
+            <span class="user-email">${user.email}</span>
+          </div>
+          <div class="user-menu-actions">
+            <button onclick="window.location.href='profile.html'" class="user-menu-btn">👤 Profile</button>
+            <button onclick="window.location.href='change-password.html'" class="user-menu-btn">🔒 Change Password</button>
+            <button onclick="logout()" class="user-menu-btn logout-btn">🚪 Logout</button>
+          </div>
+        </div>
+      `;
+      
+      // Position the menu relative to the login button
+      const loginBtnRect = loginBtn.getBoundingClientRect();
+      userMenu.style.position = 'fixed';
+      userMenu.style.top = (loginBtnRect.bottom + 8) + 'px';
+      userMenu.style.right = (window.innerWidth - loginBtnRect.right) + 'px';
+      
+      document.body.appendChild(userMenu);
+      
+      // Add click outside listener
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    // Show user menu
+    function showUserMenu() {
+      if (!userMenu) return;
+      
+      userMenu.classList.add('show');
+      loginBtn.classList.add('menu-open');
+      isMenuOpen = true;
+    }
+
+    // Hide user menu
+    function hideUserMenu() {
+      if (!userMenu) return;
+      
+      userMenu.classList.remove('show');
+      loginBtn.classList.remove('menu-open');
+      isMenuOpen = false;
+    }
+
+    // Handle clicks outside menu
+    function handleClickOutside(e) {
+      if (!userMenu || !isMenuOpen) return;
+      
+      if (!userMenu.contains(e.target) && !e.target.closest('.login-btn')) {
+        hideUserMenu();
+      }
+    }
+
+    // Reposition menu on window resize
+    function repositionMenu() {
+      if (userMenu && isMenuOpen && loginBtn) {
+        const loginBtnRect = loginBtn.getBoundingClientRect();
+        userMenu.style.top = (loginBtnRect.bottom + 8) + 'px';
+        userMenu.style.right = (window.innerWidth - loginBtnRect.right) + 'px';
+      }
+    }
+
+    // Add window resize listener
+    window.addEventListener('resize', repositionMenu);
+
+    // Optimized logout function
+    window.logout = async function() {
+      try {
+        await signOut(auth);
+        if (userMenu) {
+          userMenu.remove();
+          userMenu = null;
+          isMenuOpen = false;
+        }
+        window.location.reload();
+      } catch (error) {
+        console.error('Error signing out:', error);
+        alert('Error signing out. Please try again.');
+      }
+    };
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (userMenu) {
+        userMenu.remove();
+      }
+      document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('resize', repositionMenu);
+    });
+  </script>
+</head>
+<body>
+  <!-- Header with Logos -->
+  <header class="header small-navbar">
+    <div class="header-content">
+      <div class="logo-section">
+        <img src="National_Highways_logo.svg" alt="NHAI Logo" class="nhai-logo">
+        <div>
+          <h1 class="app-title">Crowdsource Road Condition Reporter</h1>
+        </div>
+      </div>
+      <button class="navbar-toggler" type="button" aria-label="Toggle navigation" onclick="toggleMobileNav()">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="header-nav" id="navbarNav">
+        <ul class="nav-links small-nav-links">
+          <li><a href="#" class="nav-link active">🏠 Home</a></li>
+          <li><a href="#" class="nav-link">📋 Reports</a></li>
+          <li><a href="#footer" class="nav-link" onclick="scrollToFooter(event)">📞 Contact</a></li>
+          <li><a href="#" class="nav-link" onclick="showHelp()">❓ Help</a></li>
+        </ul>
+        <div class="nhai-collaboration">
+          <img src="National_Highways_logo.svg" alt="NHAI" class="nhai-collaboration-logo">
+          <span>NHAI Collaboration</span>
+        </div>
+        <a href="auth.html" class="login-btn">🔐 Login</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+  <div class="container text-center">
+        
+      <!-- Stylish Hero Section -->
+      <div class="hero-section stylish-hero">
+        <div class="hero-bg-animated"></div>
+        <div class="hero-content glass-card hero-main-card">
+          <h2 class="hero-title">🚀 AI-Powered Road Safety</h2>
+          <p class="hero-subtitle">
+            <span class="hero-highlight">Help us make roads safer!</span> Upload a photo of a pothole or road issue and let our AI do the rest.
+          </p>
+          <button class="cta-button big-cta yellow-cta cta-glow" onclick="scrollToUpload()">
+            <span class="cta-icon">🚧</span> <span class="cta-text">Report Road Issue</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Upload Section - More Prominent -->
+      <div class="upload-section">
+    <div class="card p-4">
+      <input type="file" id="imageUpload" class="form-control mb-3" accept="image/*" onchange="previewImage()" />
+      
+      <img id="preview" src="#" alt="Image Preview" class="img-fluid d-none" />
+
+      <div class="row mb-3">
+        <div class="col">
+          <input type="text" id="lat" class="form-control" placeholder="Latitude (auto)">
+        </div>
+        <div class="col">
+          <input type="text" id="lon" class="form-control" placeholder="Longitude (auto)">
+        </div>
+      </div>
+
+      <button class="btn btn-primary w-100" onclick="sendImage()">Upload & Analyze</button>
+
+      <div id="loading" class="text-light mt-3 d-none">⏳ Analyzing image...</div>
+      <div id="result" class="result-box d-none mt-3"></div>
+        </div>
+      </div>
+
+      <!-- Map Section - More Prominent -->
+      <div class="card p-4">
+        <h3 class="text-light mb-3">📍 Location Map</h3>
+        <div id="map"></div>
+      </div>
+
+      <!-- Road Accident Statistics Section -->
+      <div class="stats-section">
+        <div class="stats-header">
+          <h2 class="stats-main-title">📊 Road Accident Deaths Statistics</h2>
+          <p class="stats-main-subtitle">Understanding the impact of road conditions on safety across India</p>
+        </div>
+        <div class="stats-content">
+          <div class="stats-iframe-wrapper">
+            <iframe loading="lazy"
+                style="width: 100%; height: 600px; border: 0px none; border-radius: 16px;"
+                allow="clipboard-write"
+                src="https://charts.dataforindia.com/charts/a957a54a25294be2a6307b9470d1bd05">
+            </iframe>
+          </div>
+          <div class="stats-info">
+            <div class="stats-card">
+              <div class="stats-card-icon">📈</div>
+              <h4>Impact</h4>
+              <p>Every report contributes to safer roads. Join thousands of users helping to make India's roads safer for everyone.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Road Safety Info Cards at Bottom -->
+      <section class="info-cards-bottom">
+        <div class="info-card">
+          <div class="card-icon">🚨</div>
+          <h4>Why Road Conditions Matter</h4>
+          <p>Poor road conditions contribute significantly to accidents. Our AI system helps identify and report dangerous road conditions before they cause harm.</p>
+        </div>
+        <div class="info-card">
+          <div class="card-icon">🎯</div>
+          <h4>Our Mission</h4>
+          <p>By crowdsourcing road condition reports, we aim to reduce accidents and save lives through proactive road maintenance. (Team Config)</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="footer-section">
+            <h4 class="footer-title">About This System</h4>
+            <p class="footer-text">
+              Advanced AI-powered pothole detection system developed for the National Highways Authority of India (NHAI) 
+              to improve road safety and maintenance efficiency.
+            </p>
+            <p class="footer-text">
+              <strong>Developed by Team Config</strong>
+            </p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="footer-section">
+            <h4 class="footer-title">Quick Links</h4>
+            <ul class="footer-links">
+              <li><a href="#" onclick="showDisclaimer()">Disclaimer</a></li>
+              <li><a href="#" onclick="showAcknowledgements()">Acknowledgements</a></li>
+              <li><a href="https://nhai.gov.in" target="_blank">NHAI Official Website</a></li>
+              <li><a href="#" onclick="showPrivacyPolicy()">Privacy Policy</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="footer-section">
+            <h4 class="footer-title">Contact & Support</h4>
+            <p class="footer-text">
+              For technical support or questions about this system, please contact the NHAI technical team.
+            </p>
+            <p class="footer-text">
+              Email: support@nhai.gov.in<br>
+              Phone: 1800-111-111
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024. All rights reserved.</p>
+        <p>Developed with ❤️ for safer roads across India</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Disclaimer Modal -->
+  <div id="disclaimerModal" class="disclaimer-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('disclaimerModal')">&times;</button>
+      <h3 class="text-light mb-3">Disclaimer</h3>
+      <div class="text-light">
+        <p><strong>Important Notice:</strong></p>
+        <ul>
+          <li>This AI-powered pothole detection system is designed to assist road maintenance teams and should not be used as the sole basis for road safety decisions.</li>
+          <li>The accuracy of detection depends on image quality, lighting conditions, and various environmental factors.</li>
+          <li>All detected potholes should be verified by qualified personnel before any maintenance actions are taken.</li>
+          <li>The National Highways Authority of India (NHAI) is not liable for any decisions made based on this system's output.</li>
+          <li>This system is intended for official use by authorized personnel only.</li>
+        </ul>
+        <p><strong>Data Privacy:</strong></p>
+        <ul>
+          <li>All uploaded images are processed securely and are not stored permanently.</li>
+          <li>Location data is used solely for mapping and reporting purposes.</li>
+          <li>No personal information is collected or stored by this system.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acknowledgements Modal -->
+  <div id="acknowledgementsModal" class="disclaimer-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('acknowledgementsModal')">&times;</button>
+      <h3 class="text-light mb-3">Acknowledgements</h3>
+      <div class="text-light">
+        <p><strong>Technology Partners:</strong></p>
+        <ul>
+          <li>Google Maps API for location services and mapping</li>
+          <li>TensorFlow/Keras for AI model development</li>
+          <li>OpenCV for image processing</li>
+          <li>Bootstrap and Tailwind CSS for responsive design</li>
+        </ul>
+        <p><strong>Development Team:</strong></p>
+        <ul>
+          <li>AI/ML Engineers for model development and training</li>
+          <li>Full-stack developers for web application</li>
+          <li>UI/UX designers for user interface</li>
+          <li>Quality assurance team for testing and validation</li>
+        </ul>
+        <p><strong>Special Thanks:</strong></p>
+        <ul>
+          <li>NHAI officials for guidance and requirements</li>
+          <li>Road maintenance teams for field testing</li>
+          <li>Open source community for various libraries and tools</li>
+        </ul>
+      </div>
+    </div>
+    </div>
+
+  <!-- Privacy Policy Modal -->
+  <div id="privacyModal" class="disclaimer-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('privacyModal')">&times;</button>
+      <h3 class="text-light mb-3">Privacy Policy</h3>
+      <div class="text-light">
+        <p><strong>Data Collection:</strong></p>
+        <ul>
+          <li>This system only processes road images for pothole detection</li>
+          <li>No personal information is collected or stored</li>
+          <li>Location data is used only for mapping purposes</li>
+          <li>Images are processed in real-time and not permanently stored</li>
+        </ul>
+        <p><strong>Data Security:</strong></p>
+        <ul>
+          <li>All data transmission is encrypted using HTTPS</li>
+          <li>Images are processed securely on NHAI servers</li>
+          <li>No third-party access to uploaded data</li>
+          <li>Regular security audits are conducted</li>
+        </ul>
+        <p><strong>Data Retention:</strong></p>
+        <ul>
+          <li>Processed images are automatically deleted after analysis</li>
+          <li>Only detection results and coordinates are stored for reporting</li>
+          <li>No personal data is retained beyond the session</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="disclaimer-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('helpModal')">&times;</button>
+      <h3 class="text-light mb-3">How to Use This Webapp</h3>
+      <ol class="text-light">
+        <li>Click <b>Report Road Issue</b> or scroll to the upload section.</li>
+        <li>Upload a clear photo of the road or pothole.</li>
+        <li>Allow location access for accurate mapping.</li>
+        <li>Click <b>Upload & Analyze</b> to let the AI detect issues.</li>
+        <li>View results and see your report on the map.</li>
+        <li>Login to track your reports and achievements!</li>
+      </ol>
+      <p class="text-light mt-3">For more help, contact support via the footer.</p>
+    </div>
+  </div>
+
+  <script>
+    let map;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 28.6139, lng: 77.2090 },
+        zoom: 15,
+      });
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const userPos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            map.setCenter(userPos);
+            new google.maps.Marker({
+              position: userPos,
+              map: map,
+              title: "You are here 📍"
+            });
+
+            document.getElementById("lat").value = userPos.lat;
+            document.getElementById("lon").value = userPos.lng;
+          },
+          function () {
+            handleLocationError(true, map.getCenter());
+          }
+        );
+      } else {
+        handleLocationError(false, map.getCenter());
+      }
+    }
+
+    function handleLocationError(browserHasGeolocation, pos) {
+      const message = browserHasGeolocation
+        ? "⚠️ Geolocation service failed."
+        : "❌ Your browser doesn't support geolocation.";
+      alert(message);
+    }
+
+    function previewImage() {
+      const fileInput = document.getElementById('imageUpload');
+      const preview = document.getElementById('preview');
+      const file = fileInput.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    async function sendImage() {
+      const fileInput = document.getElementById("imageUpload");
+      const lat = document.getElementById("lat").value;
+      const lon = document.getElementById("lon").value;
+
+      if (!fileInput.files.length) {
+        alert("Please select an image first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("lat", lat);
+      formData.append("lon", lon);
+
+      document.getElementById("loading").classList.remove("d-none");
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/predict/", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+        document.getElementById("loading").classList.add("d-none");
+        document.getElementById("result").classList.remove("d-none");
+        document.getElementById("result").innerText = JSON.stringify(result, null, 2);
+      } catch (err) {
+        document.getElementById("loading").classList.add("d-none");
+        alert("❌ An error occurred while processing the image.");
+        console.error(err);
+      }
+    }
+
+    // Modal functions
+    function showDisclaimer() {
+      document.getElementById('disclaimerModal').style.display = 'block';
+    }
+
+    function showAcknowledgements() {
+      document.getElementById('acknowledgementsModal').style.display = 'block';
+    }
+
+    function showPrivacyPolicy() {
+      document.getElementById('privacyModal').style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modals = document.querySelectorAll('.disclaimer-modal');
+      modals.forEach(modal => {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    }
+
+    // Scroll to upload section function
+    function scrollToUpload() {
+      const uploadSection = document.querySelector('.upload-section');
+      if (uploadSection) {
+        uploadSection.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }
+
+    function showHelp() {
+      document.getElementById('helpModal').style.display = 'block';
+    }
+
+    function scrollToFooter(e) {
+      e.preventDefault();
+      document.querySelector('footer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleMobileNav() {
+      const nav = document.getElementById('navbarNav');
+      nav.classList.toggle('show-mobile-nav');
+    }
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJrUxN_k5oRYBDLKeCry6M64lTj4F9Ayo&callback=initMap" async defer></script>
+</body>
+</html>
