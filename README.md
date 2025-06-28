@@ -1,4 +1,4 @@
-# hacksgon
+# Hacksgon
 # Web Application Project
 
 A full-stack web application with user authentication, profile management, and responsive UI built with HTML/CSS/JavaScript frontend and Python backend.
@@ -97,12 +97,13 @@ python -m venv venv
 source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install flask firebase-admin python-dotenv requests
 python main.py              # Server starts on http://localhost:5000
+uvicorn backend.main:app --reload  #Use in the root directory 
 ```
 
 ### Step 3: Frontend Setup
 ```bash
 # Open new terminal/command prompt
-cd frontend
+cd frontend    #use live server 
 python -m http.server 8000  # Or double-click index.html
 ```
 
