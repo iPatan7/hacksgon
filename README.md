@@ -7,8 +7,8 @@ A full-stack web application with user authentication, profile management, and r
 
 ```bash
 # 1. Clone the repository
-git clone <your-repo-url>
-cd <project-folder>
+git cloNE https://github.com/iPatan7/hacksgon.git
+cd hackathon-day2
 
 # 2. Setup Backend
 cd backend
@@ -16,6 +16,7 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install flask firebase-admin python-dotenv  # or your requirements
 python main.py
+uvicorn backend.main:app --reload 
 
 # 3. Setup Frontend (in new terminal)
 cd frontend
